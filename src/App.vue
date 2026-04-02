@@ -22,6 +22,7 @@ const handleOtpComplete = (code: string) => {
       :disabled="false"
       :error="true"
       autofocus
+      :is-password="false"
       @complete="handleOtpComplete"
     />
   </div>

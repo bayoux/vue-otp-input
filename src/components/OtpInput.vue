@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const modelValue = defineModel<string>({ default: '' })
+
 const emit = defineEmits<{
   (e: 'complete', value: string): void
 }>()
@@ -31,6 +32,16 @@ watch(
   () => props.length,
   (newLen) => {
     digits.value = Array.from({ length: newLen }, () => '')
+  },
+)
+
+watch(
+  () => props.error,
+  (isError) => {
+    if (isError) {
+      inputRefs.value[0]?.focus()
+      inputRefs.value[0]?.select()
+    }
   },
 )
 
@@ -88,7 +99,10 @@ const handleKeyDown = (index: number, event: KeyboardEvent) => {
   }
 
   if (event.key === 'Backspace') {
-    if (!digits.value[index] && index > 0) {
+    event.preventDefault()
+    if (digits.value[index]) {
+      digits.value[index] = ''
+    } else if (index > 0) {
       digits.value[index - 1] = ''
       inputRefs.value[index - 1]?.focus()
     }
@@ -190,6 +204,10 @@ const handlePaste = (event: ClipboardEvent) => {
     &:focus {
       border-color: #3b82f6;
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    &::selection {
+      background: rgba(59, 130, 246, 0.3);
     }
 
     &--active {
