@@ -15,7 +15,15 @@ const handleOtpComplete = (code: string) => {
 
 <template>
   <div class="container">
-    <OtpInput v-model="otpCode" :length="6" type="number" disabled @complete="handleOtpComplete" />
+    <OtpInput
+      v-model="otpCode"
+      :length="6"
+      type="number"
+      :disabled="false"
+      :error="true"
+      autofocus
+      @complete="handleOtpComplete"
+    />
   </div>
 </template>
 
