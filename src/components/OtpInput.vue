@@ -8,6 +8,7 @@ interface Props {
   error?: boolean
   isPassword?: boolean
   autofocus?: boolean
+  divider?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,12 +18,13 @@ const props = withDefaults(defineProps<Props>(), {
   error: false,
   isPassword: false,
   autofocus: false,
+  divider: false,
 })
 
 const modelValue = defineModel<string>({ default: '' })
 
 const emit = defineEmits<{
-  (e: 'complete', value: string): void
+  (e: 'complete', data: string): void
 }>()
 
 const digits = ref<string[]>(Array.from({ length: props.length }, () => ''))
@@ -50,12 +52,19 @@ watch(
   (newVal) => {
     const code = newVal.join('')
     modelValue.value = code
+
     if (code.length === props.length && newVal.every((d) => d !== '')) {
       emit('complete', code)
     }
   },
   { deep: true },
 )
+
+watch(modelValue, (newVal) => {
+  if (!newVal) {
+    digits.value = Array(props.length).fill('')
+  }
+})
 
 onBeforeUpdate(() => {
   inputRefs.value = []
@@ -130,6 +139,10 @@ const handlePaste = (event: ClipboardEvent) => {
   const lastIndex = Math.min(cleanData.length, props.length - 1)
   nextTick(() => inputRefs.value[lastIndex]?.focus())
 }
+
+const dividerShow = (index: number) => {
+  return index === Math.floor(props.length / 2) - 1 && props.length > 4
+}
 </script>
 
 <template>
@@ -161,9 +174,8 @@ const handlePaste = (event: ClipboardEvent) => {
           @keydown="handleKeyDown(index, $event)"
           @focus="($event.target as HTMLInputElement).select()"
         />
-        <span v-if="index === Math.floor(length / 2) - 1 && length > 4" class="otp-input__divider">
-          &mdash;
-        </span>
+
+        <span v-if="divider && dividerShow(index)" class="otp-input__divider"> &mdash; </span>
       </template>
     </div>
   </div>
