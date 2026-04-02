@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 
 interface Props {
   length?: number
@@ -20,13 +20,19 @@ const digits = ref<string[]>(Array.from({ length: props.length }, () => ''))
 const inputRefs = ref<HTMLInputElement[]>([])
 
 watch(
+  () => props.length,
+  (newLen) => {
+    digits.value = Array.from({ length: newLen }, () => '')
+  },
+)
+
+watch(
   digits,
   (newVal) => {
     const code = newVal.join('')
     modelValue.value = code
 
     if (code.length === props.length && newVal.every((d) => d !== '')) {
-      console.log('Emit complete event with:', code)
       emit('complete', code)
     }
   },
@@ -35,7 +41,11 @@ watch(
 
 const handleInput = (index: number, event: Event) => {
   const input = event.target as HTMLInputElement
-  const val = input.value.slice(-1)
+  let val = input.value.slice(-1)
+
+  if (props.type === 'number' && !/^\d$/.test(val)) {
+    val = ''
+  }
 
   digits.value[index] = val
 
@@ -45,22 +55,36 @@ const handleInput = (index: number, event: Event) => {
 }
 
 const handleKeyDown = (index: number, event: KeyboardEvent) => {
-  if (event.key === 'Backspace' && !digits.value[index] && index > 0) {
-    inputRefs.value[index - 1]?.focus()
+  switch (event.key) {
+    case 'Backspace':
+      if (!digits.value[index] && index > 0) {
+        inputRefs.value[index - 1]?.focus()
+      }
+      break
+    case 'ArrowLeft':
+      if (index > 0) inputRefs.value[index - 1]?.focus()
+      break
+    case 'ArrowRight':
+      if (index < props.length - 1) inputRefs.value[index + 1]?.focus()
+      break
   }
 }
 
 const handlePaste = (event: ClipboardEvent) => {
   event.preventDefault()
   const pastedData = event.clipboardData?.getData('text') || ''
-  const data = pastedData.slice(0, props.length).split('')
+  const cleanData = props.type === 'number' ? pastedData.replace(/\D/g, '') : pastedData
+
+  const data = cleanData.slice(0, props.length).split('')
 
   data.forEach((char, i) => {
     if (i < props.length) digits.value[i] = char
   })
 
   const nextIndex = Math.min(data.length, props.length - 1)
-  inputRefs.value[nextIndex]?.focus()
+  nextTick(() => {
+    inputRefs.value[nextIndex]?.focus()
+  })
 }
 </script>
 
@@ -73,13 +97,17 @@ const handlePaste = (event: ClipboardEvent) => {
         ref="inputRefs"
         v-model="digits[index]"
         type="text"
-        inputmode="numeric"
+        :inputmode="type === 'number' ? 'numeric' : 'text'"
         autocomplete="one-time-code"
         class="otp-input__field"
-        :class="{ 'otp-input__field--active': digits[index] }"
+        :class="{
+          'otp-input__field--active': digits[index],
+          'otp-input__field--filled': digits[index],
+        }"
         maxlength="1"
         @input="handleInput(index, $event)"
         @keydown="handleKeyDown(index, $event)"
+        @focus="($event.target as HTMLInputElement).select()"
       />
     </div>
   </div>
